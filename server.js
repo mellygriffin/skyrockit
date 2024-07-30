@@ -7,7 +7,10 @@ const methodOverride = require('method-override');
 const morgan = require('morgan');
 const session = require('express-session');
 
+const isSignedIn = require('./middleware/is-signed-in.js');
+const passUserToView = require('./middleware/pass-user-to-view.js');
 const authController = require('./controllers/auth.js');
+const applicationsController = require('./controllers/applications.js');
 
 const port = process.env.PORT ? process.env.PORT : '3000';
 
@@ -28,21 +31,21 @@ app.use(
   })
 );
 
-app.get('/', (req, res) => {
-  res.render('index.ejs', {
-    user: req.session.user,
-  });
-});
+app.use(passUserToView);//use new middleware
 
-app.get('/vip-lounge', (req, res) => {
+app.get('/', (req, res) => {
   if (req.session.user) {
-    res.send(`Welcome to the party ${req.session.user.username}.`);
+    res.redirect(`/users/${req.session.user._id}/applications`);
   } else {
-    res.send('Sorry, no guests allowed.');
+    res.render('index.ejs');
   }
 });
 
+
+
 app.use('/auth', authController);
+app.use(isSignedIn);//has to come AFTER auth
+app.use('/users/:userId/applications', applicationsController);
 
 app.listen(port, () => {
   console.log(`The express app is ready on port ${port}!`);
